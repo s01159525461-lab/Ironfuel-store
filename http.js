@@ -85,7 +85,7 @@ function serveStatic(req, res, root, pathname, { spaFallback = null } = {}) {
   const ext = path.extname(target).toLowerCase();
   const type = MIME[ext] || 'application/octet-stream';
   const etag = `"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;
-  const headers = { 'Content-Type': type, ETag: etag, 'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600' };
+  const headers = { 'Content-Type': type, ETag: etag, 'Cache-Control': ['.html', '.js', '.css'].includes(ext) ? 'no-cache' : 'public, max-age=3600' };
   if (req.headers['if-none-match'] === etag) { res.writeHead(304, headers); res.end(); return true; }
   const compressible = /(text|json|javascript|svg)/.test(type) && /\bgzip\b/.test(String(req.headers['accept-encoding'] || ''));
   const data = fs.readFileSync(target);

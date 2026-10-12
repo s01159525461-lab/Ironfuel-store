@@ -41,17 +41,8 @@
     window.IF_BOOT && window.IF_BOOT.setDir(IF.lang);
     const s = S.cfg.settings;
     const name = esc(s.store_name || 'IronFuel'), half = Math.ceil(name.length / 2);
-    const ann = IF.lang === 'ar' ? s.announcement_ar : s.announcement_en;
     const phone = esc(s.contact_phone || '');
 
-    $('#topbar').innerHTML = `<div class="container d-flex align-items-center justify-content-between gap-3">
-      <div class="tb-msg">${ic('bolt', 14)}<span>${esc(ann || '')}</span></div>
-      <div class="tb-links d-none d-md-flex align-items-center gap-3">
-        ${phone ? `<a href="tel:${phone.replace(/\s/g, '')}" dir="ltr">${ic('phone', 14)}${phone}</a>` : ''}
-        <a href="#/track">${ic('package', 14)}${esc(t('track'))}</a>
-        <button class="tb-lang" data-act="lang" type="button">${ic('globe', 14)}${esc(t('lang'))}</button>
-      </div></div>`;
-    $('#topbar').hidden = !(ann || phone);
 
     $('#header').innerHTML = `
       <div class="container hdr">
@@ -63,6 +54,7 @@
           <div class="suggest" id="suggest" hidden></div>
         </form>
         <div class="hdr-actions">
+          <button class="act" type="button" data-act="lang" aria-label="${esc(t('lang'))}">${ic('globe', 20)}<span class="lbl">${esc(t('lang'))}</span></button>
           <a class="act d-none d-md-flex" href="${S.user ? '#/account' : '#/login'}" aria-label="${esc(t('account'))}">${ic('user', 22)}<span class="lbl d-none d-xl-inline">${esc(S.user ? (S.user.name || '').split(' ')[0] : t('login'))}</span></a>
           <a class="act d-none d-md-flex" href="#/account/wishlist" aria-label="${esc(t('wishlist'))}">${ic('heart', 22)}<span class="count" data-count="wish" ${S.wish.size ? '' : 'hidden'}>${S.wish.size}</span></a>
           <button class="act" type="button" data-act="opencart" aria-label="${esc(t('cart'))}">${ic('bag', 22)}<span class="count" data-count="cart" ${cartCount() ? '' : 'hidden'}>${cartCount()}</span><span class="lbl d-none d-xl-inline">${esc(t('cart'))}</span></button>
@@ -99,7 +91,7 @@
         <div class="ft-grid">
           <div class="ft-about">${logoHtml(name, half)}<p>${esc(t('f_about'))}</p>
             <div class="ft-pay"><span>${ic('cash', 16)} ${esc(t('cod'))}</span><span>${ic('card', 16)} ${esc(t('online'))}</span></div></div>
-          <div><h5>${esc(t('f_links'))}</h5><ul><li><a href="#/shop">${esc(t('shop'))}</a></li><li><a href="#/shop?deals=1">${esc(t('deals'))}</a></li><li><a href="#/brands">${esc(t('brands'))}</a></li></ul></div>
+          <div><h5>${esc(t('f_links'))}</h5><ul><li><a href="#/shop">${esc(t('shop'))}</a></li><li><a href="#/shop?deals=1">${esc(t('deals'))}</a></li><li><a href="#/brands">${esc(t('brands'))}</a></li><li><a href="#/page/about">${esc(t('about'))}</a></li></ul></div>
           <div><h5>${esc(t('f_help'))}</h5><ul><li><a href="#/track">${esc(t('track'))}</a></li><li><a href="#/account">${esc(t('account'))}</a></li><li><a href="#/cart">${esc(t('cart'))}</a></li></ul></div>
           <div><h5>${esc(t('f_contact'))}</h5><ul class="ft-contact">${phone ? `<li dir="ltr">${ic('phone', 16)}${phone}</li>` : ''}${s.contact_email ? `<li>${ic('mail', 16)}${esc(s.contact_email)}</li>` : ''}<li>${ic('truck', 16)}${esc(t('st_shipping'))}: 27</li></ul></div>
         </div>
@@ -224,10 +216,30 @@
     } catch (e) { console.warn('Swiper init failed', e); }
   }
 
+  /* ---------- صفحات HTML قابلة للتعديل (مجلد public/pages) ---------- */
+  async function loadFragment(name) {
+    for (const f of [`${name}.${IF.lang}.html`, `${name}.html`]) {
+      try {
+        const r = await fetch('/pages/' + f, { cache: 'no-store', credentials: 'same-origin' });
+        if (r.ok && /html/.test(r.headers.get('content-type') || '')) { const txt = (await r.text()).trim(); if (txt) return txt; }
+      } catch { /* ignore */ }
+    }
+    return null;
+  }
+  on(/^\/page\/([\w-]+)$/, async (m, q, alive) => {
+    const html = await loadFragment(m[1]);
+    if (!alive()) return;
+    if (!html) { setTitle(t('not_found')); app.innerHTML = `<div class="container page"><div class="empty">${ic('search', 44)}<p>${esc(t('not_found'))}</p><a class="btn btn-primary" href="#/">${esc(t('back_home'))}</a></div></div>`; return; }
+    const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(html);
+    setTitle(h1 ? h1[1].replace(/<[^>]+>/g, '').trim() : m[1]);
+    app.innerHTML = `<div class="container page page-html">${html}</div>`;
+  });
+
   /* ---------- الرئيسية ---------- */
   on(/^\/$/, async (m, q, alive) => {
-    const [feat, deals, best] = await Promise.all([
+    const [feat, deals, best, heroFrag, extraFrag] = await Promise.all([
       get('/api/products?featured=1&per=8'), get('/api/products?deals=1&sort=discount&per=10'), get('/api/products?sort=popular&per=10'),
+      loadFragment('home-hero'), loadFragment('home-extra'),
     ]);
     if (!alive()) return;
     [feat, deals, best].forEach((r) => remember(r.items));
@@ -258,6 +270,8 @@
       <section class="section container">${sectionHead(esc(t('best_sellers')), '#/shop?sort=popular')}${carousel(best.items, 'swBest')}</section>
       ${feat.items.length ? `<section class="section container">${sectionHead(t('featured'), '#/shop')}${grid(feat.items.slice(0, 4))}</section>` : ''}
       <section class="section container">${sectionHead(esc(t('shop_brands')), '#/brands')}<div class="brands">${S.cfg.brands.map((b) => `<a class="brand-pill" href="#/shop?brand=${esc(b.slug)}">${esc(b.name)}</a>`).join('')}</div></section>`;
+    if (heroFrag) { const h = $('#heroSwiper'); if (h) h.outerHTML = `<div class="hero-custom">${heroFrag}</div>`; }
+    if (extraFrag) { const tr = $('.trust'); if (tr) tr.insertAdjacentHTML('afterend', `<div class="home-extra">${extraFrag}</div>`); }
     initSwipers();
   });
 
@@ -552,7 +566,7 @@
     const nav = [['profile', t('profile'), 'user'], ['orders', t('my_orders'), 'package'], ['wishlist', t('wishlist'), 'heart'], ['password', t('change_password'), 'lock']];
     app.innerHTML = `<div class="container page"><div class="account"><nav class="side-nav">
       ${nav.map(([k, l, i]) => `<a href="#/account${k === 'profile' ? '' : '/' + k}" class="${tab === k ? 'active' : ''}">${ic(i, 18)} ${esc(l)}</a>`).join('')}
-      ${S.user.role === 'admin' ? `<a href="/admin/">${ic('gear', 18)} Admin</a>` : ''}<button type="button" data-act="logout" class="danger">${ic('logout', 18)} ${esc(t('logout'))}</button></nav><div class="acc-main">${content}</div></div></div>`;
+      ${S.user.role === 'admin' ? `<a href="/admin/">${ic('gear', 18)} ${esc(t('dashboard'))}</a>` : ''}<button type="button" data-act="logout" class="danger">${ic('logout', 18)} ${esc(t('logout'))}</button></nav><div class="acc-main">${content}</div></div></div>`;
   });
 
   /* ---------- الأحداث (Delegation) ---------- */

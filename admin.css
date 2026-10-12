@@ -88,3 +88,6 @@ body.admin { min-height: 100vh; background: var(--bg); }
 .login-card h2 { font-weight: 900; font-size: 1.5rem; margin-bottom: 4px; }
 
 @media (max-width: 767.98px) { .variant-row { grid-template-columns: 1fr 1fr; } .variant-row input:first-of-type + input { grid-column: auto; } .row-actions { flex-wrap: wrap; } .table > :not(caption) > * > * { padding: 11px 12px; } }
+
+.wa-ev { padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-2); }
+code { color: var(--volt); }

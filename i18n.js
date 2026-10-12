@@ -5,7 +5,7 @@
     ar: {
       home: 'الرئيسية', shop: 'المتجر', deals: 'العروض', brands: 'البراندات', track: 'تتبع طلبك', search_ph: 'ابحث عن بروتين، كرياتين، براند...',
       cart: 'السلة', wishlist: 'المفضلة', account: 'حسابي', login: 'دخول', register: 'حساب جديد', logout: 'تسجيل الخروج', lang: 'EN',
-      hero_eyebrow: 'مكملات أصلية 100%', hero_h1: 'غذّي <em>قوتك</em><br>وحقّق هدفك', hero_p: 'أقوى مكملات البروتين والكرياتين وحرق الدهون بأسعار منافسة، وشحن سريع لكل محافظات مصر.',
+      dashboard: 'لوحة التحكم', about: 'من نحن', hero_eyebrow: 'مكملات أصلية 100%', hero_h1: 'غذّي <em>قوتك</em><br>وحقّق هدفك', hero_p: 'أقوى مكملات البروتين والكرياتين وحرق الدهون بأسعار منافسة، وشحن سريع لكل محافظات مصر.',
       shop_now: 'تسوّق الآن', see_deals: 'شوف العروض', st_products: 'منتج', st_brands: 'براند', st_shipping: 'محافظة تغطية الشحن',
       cats: 'تسوّق حسب القسم', best_sellers: 'الأكثر مبيعًا', hot_deals: 'عروض <span>نار</span>', featured: 'منتجات <span>مميزة</span>', all: 'عرض الكل',
       deal_banner_t: 'خصومات تصل إلى 35%', deal_banner_p: 'عروض محدودة على أقوى المكملات. الحق قبل ما تخلص.', shop_brands: 'تسوّق حسب البراند',
@@ -38,7 +38,7 @@
     en: {
       home: 'Home', shop: 'Shop', deals: 'Deals', brands: 'Brands', track: 'Track order', search_ph: 'Search protein, creatine, brands...',
       cart: 'Cart', wishlist: 'Wishlist', account: 'Account', login: 'Login', register: 'Sign up', logout: 'Log out', lang: 'عربي',
-      hero_eyebrow: '100% authentic supplements', hero_h1: 'Fuel your <em>power</em><br>hit your goal', hero_p: 'Top protein, creatine and fat-burner supplements at great prices, with fast delivery across Egypt.',
+      dashboard: 'Dashboard', about: 'About us', hero_eyebrow: '100% authentic supplements', hero_h1: 'Fuel your <em>power</em><br>hit your goal', hero_p: 'Top protein, creatine and fat-burner supplements at great prices, with fast delivery across Egypt.',
       shop_now: 'Shop now', see_deals: 'See deals', st_products: 'Products', st_brands: 'Brands', st_shipping: 'Governorates covered',
       cats: 'Shop by category', best_sellers: 'Best sellers', hot_deals: 'Hot <span>deals</span>', featured: 'Featured <span>picks</span>', all: 'View all',
       deal_banner_t: 'Up to 35% off', deal_banner_p: 'Limited-time offers on top supplements. Grab them before they are gone.', shop_brands: 'Shop by brand',

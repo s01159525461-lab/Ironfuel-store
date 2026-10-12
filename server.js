@@ -5,6 +5,7 @@ const { HttpError, send, readBody, serveStatic } = require('./lib/http');
 const { router, loadUser, UPLOAD_DIR } = require('./lib/api');
 const { rateLimit } = require('./lib/auth');
 const { ensureAdmin, seedDemo } = require('./lib/seed');
+const whatsapp = require('./lib/whatsapp');
 
 try { process.loadEnvFile?.(path.join(__dirname, '.env')); } catch { /* .env اختياري */ }
 
@@ -15,6 +16,7 @@ const PUBLIC = path.join(__dirname, 'public');
 
 ensureAdmin();
 seedDemo();
+whatsapp.start();
 
 const CSP = [
   "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:",

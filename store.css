@@ -11,14 +11,6 @@ main#app { flex: 1; }
 .page-title { font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 900; margin-bottom: 22px; letter-spacing: -.01em; }
 .page-title small { color: var(--muted); font-weight: 600; font-size: .6em; }
 
-/* ---------- الشريط العلوي ---------- */
-.topbar { background: linear-gradient(90deg, var(--volt-2), var(--volt)); color: var(--volt-ink); font-size: 13px; font-weight: 700; }
-.topbar .container { min-height: 36px; }
-.tb-msg { display: flex; align-items: center; gap: 8px; }
-.tb-links a, .tb-lang { color: var(--volt-ink); display: inline-flex; align-items: center; gap: 5px; background: none; border: 0; font: inherit; font-weight: 700; padding: 0; opacity: .85; }
-.tb-links a:hover, .tb-lang:hover { opacity: 1; }
-.tb-links { border-inline-start: 1px solid rgba(11, 18, 0, .2); padding-inline-start: 16px; }
-
 /* ---------- الهيدر ---------- */
 .site-header { position: sticky; top: 0; z-index: 1030; background: rgba(9, 12, 17, .88); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid var(--line); }
 .hdr { display: flex; align-items: center; gap: 18px; min-height: 72px; }
@@ -311,3 +303,13 @@ main#app { flex: 1; }
   .auth { padding: 22px; } .buy-row { flex-wrap: wrap; } .buy-row .btn-lg { flex: 1 1 100%; order: 3; }
   .tabs button { padding: 14px 16px; flex: 1; } .pdp-tabs > div:not(.tabs) { padding: 18px; }
 }
+
+/* ---------- صفحات HTML المخصصة (public/pages) ---------- */
+.hero-custom { border-bottom: 1px solid var(--line); }
+.page-html { max-width: 900px; line-height: 1.9; }
+.page-html h1 { font-weight: 900; margin-bottom: 18px; }
+.page-html h2, .page-html h3 { font-weight: 800; margin-top: 28px; }
+.page-html p, .page-html li { color: #c4cdd9; }
+.page-html img { border-radius: 16px; height: auto; }
+.page-html a:not(.btn) { color: var(--volt); text-decoration: underline; text-underline-offset: 3px; }
+.home-extra .container { padding-block: 28px 0; }

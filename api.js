@@ -6,6 +6,7 @@ const { q, tx, getSettings, DATA_DIR } = require('./db');
 const { Router, HttpError, readJson, readBody } = require('./http');
 const A = require('./auth');
 const { getProvider, checkPayToken } = require('./payments');
+const wa = require('./whatsapp');
 
 const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -373,6 +374,7 @@ r.post('/api/orders', limit('order', 20, 3600_000), (ctx) => {
     return q.get('SELECT * FROM orders WHERE id=?', oid);
   });
 
+  wa.queue(order, 'created');
   const out = orderWithItems(order);
   if (method === 'online') {
     try { out.payment = getProvider().createSession(order); }
@@ -412,6 +414,7 @@ r.post('/api/orders/:code/cancel', (ctx) => {
   if (!mine) throw new HttpError(404, 'الطلب غير موجود');
   if (o.status !== 'pending') throw new HttpError(400, 'مينفعش تلغي الطلب بعد تأكيده، كلّم الدعم');
   tx(() => applyStatus(o, 'cancelled'));
+  wa.queue(q.get('SELECT * FROM orders WHERE id=?', o.id), 'cancelled');
   return orderWithItems(q.get('SELECT * FROM orders WHERE id=?', o.id));
 });
 
@@ -633,7 +636,9 @@ r.patch('/api/admin/orders/:code', guard, (ctx) => {
     }
   });
   audit(ctx, 'order.update', `${o.code} ${ctx.body.status || ''} ${ctx.body.payment_status || ''}`);
-  return orderWithItems(q.get('SELECT * FROM orders WHERE id=?', o.id));
+  const fresh = q.get('SELECT * FROM orders WHERE id=?', o.id);
+  if (ctx.body.status && fresh.status !== o.status) wa.queue(fresh, fresh.status);
+  return orderWithItems(fresh);
 });
 const csvCell = (v) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
 r.get('/api/admin/orders.csv', guard, (ctx) => {
@@ -708,9 +713,27 @@ r.put('/api/admin/settings', guard, (ctx) => {
     if (k === 'cashback_enabled') v = flag(ctx.body[k]) ? '1' : '0';
     q.run('INSERT INTO settings(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, v);
   }
+  for (const k of wa.WA_KEYS) {
+    if (ctx.body[k] === undefined) continue;
+    const isFlag = k === 'wa_enabled' || k.startsWith('wa_on_');
+    const v = isFlag ? (flag(ctx.body[k]) ? '1' : '0') : String(ctx.body[k]).slice(0, k.startsWith('wa_text_') ? 1000 : 80);
+    q.run('INSERT INTO settings(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, v);
+  }
   audit(ctx, 'settings.update', '');
   return getSettings();
 });
+
+// ---- واتساب
+r.get('/api/admin/whatsapp', guard, (ctx) => {
+  const { page, per, offset } = pageParams(ctx.query, 20, 100);
+  const where = ctx.query.status ? 'WHERE w.status=?' : '', params = ctx.query.status ? [ctx.query.status] : [];
+  const total = q.get(`SELECT COUNT(*) n FROM wa_outbox w ${where}`, ...params).n;
+  const items = q.all(`SELECT w.*, o.code, o.name FROM wa_outbox w LEFT JOIN orders o ON o.id=w.order_id ${where} ORDER BY w.id DESC LIMIT ? OFFSET ?`, ...params, per, offset);
+  const counts = Object.fromEntries(q.all('SELECT status, COUNT(*) n FROM wa_outbox GROUP BY status').map((x) => [x.status, x.n]));
+  return { items, total, page, pages: Math.max(1, Math.ceil(total / per)), counts, mode: wa.mode(), events: wa.EVENTS.map((e) => ({ key: e, label: wa.EVENT_LABEL[e] })) };
+});
+r.post('/api/admin/whatsapp/:id/retry', guard, (ctx) => { if (!wa.retry(int(ctx.params.id, { min: 1 }))) throw new HttpError(404, 'غير موجود'); return { ok: true }; });
+r.post('/api/admin/whatsapp/:id/sent', guard, (ctx) => { wa.markSent(int(ctx.params.id, { min: 1 })); return { ok: true }; });
 
 r.get('/api/admin/audit', guard, () => ({ items: q.all('SELECT a.*, u.email FROM audit_log a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT 100') }));
 

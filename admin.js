@@ -11,7 +11,7 @@
   const NAV = [
     ['main', 'الرئيسية'], ['dashboard', 'chart', 'لوحة التحكم'], ['orders', 'package', 'الطلبات'],
     ['main', 'الكتالوج'], ['products', 'tag', 'المنتجات'], ['categories', 'layers', 'الأقسام'], ['brands', 'award', 'البراندات'],
-    ['main', 'التسويق والعملاء'], ['coupons', 'ticket', 'الكوبونات'], ['users', 'users', 'المستخدمون'], ['reviews', 'star', 'التقييمات'],
+    ['main', 'التسويق والعملاء'], ['coupons', 'ticket', 'الكوبونات'], ['whatsapp', 'phone', 'واتساب'], ['users', 'users', 'المستخدمون'], ['reviews', 'star', 'التقييمات'],
     ['main', 'النظام'], ['settings', 'gear', 'الإعدادات'], ['audit', 'file', 'سجل النشاط'],
   ];
   const PAY_METHOD = { cod: 'عند الاستلام', online: 'أونلاين' };
@@ -50,7 +50,7 @@
       <aside class="sidebar offcanvas-lg offcanvas-start" id="sb" tabindex="-1" aria-label="القائمة">
         <div class="offcanvas-header d-lg-none"><span class="fw-bold">القائمة</span><button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sb" aria-label="إغلاق"></button></div>
         <div class="offcanvas-body">
-          <a class="sb-logo" href="#/dashboard">${LOGO}<span>${name}<small>Admin</small></span></a>
+          <a class="sb-logo" href="#/dashboard">${LOGO}<span>${name}<small>لوحة التحكم</small></span></a>
           ${NAV.map((n) => (n[0] === 'main' ? `<div class="sb-label">${esc(n[1])}</div>` : `<a class="nav-i ${n[0] === active ? 'active' : ''}" href="#/${n[0]}">${ic(n[1], 19)}<span>${esc(n[2])}</span></a>`)).join('')}
           <div class="sb-spacer"></div>
           <a class="nav-i" href="/" target="_blank" rel="noopener">${ic('globe', 19)}<span>فتح المتجر</span></a>
@@ -285,6 +285,42 @@
       <td>${v.approved ? chip('ok', 'منشور') : chip('warn', 'بانتظار المراجعة')}</td>
       <td><div class="row-actions">${v.approved ? btnSm('rvoff', 'إخفاء', `data-id="${v.id}"`) : btnSm('rvon', `${ic('check', 14)} نشر`, `data-id="${v.id}"`, 'btn-primary')}${delBtn('rvdel', v.id)}</div></td></tr>`), 'لا توجد تقييمات');
   };
+
+  /* ---------- واتساب ---------- */
+  const WA_ST = { pending: ['warn', 'في الانتظار'], sent: ['ok', 'اتبعتت'], failed: ['bad', 'فشلت'], manual: ['info', 'جاهزة للإرسال'] };
+  views.whatsapp = async (q) => {
+    shell('whatsapp', 'رسائل واتساب', '', '<div class="skel"></div>');
+    const [r, s] = await Promise.all([get('/api/admin/whatsapp' + qs({ status: q.status, page: S.page })), get('/api/admin/settings')]);
+    const c = (k) => r.counts[k] || 0;
+    const api = r.mode === 'api';
+    const evRow = (e) => `<div class="wa-ev"><div class="d-flex align-items-center justify-content-between gap-3 mb-2"><b>${esc(e.label)}</b>
+        <label class="check m-0"><input class="form-check-input m-0" type="checkbox" name="wa_on_${e.key}" ${s['wa_on_' + e.key] === '1' ? 'checked' : ''}> إرسال</label></div>
+        <textarea class="form-control" name="wa_text_${e.key}" rows="3" maxlength="1000">${esc(s['wa_text_' + e.key] || '')}</textarea>
+        <input class="form-control form-control-sm mt-2" name="wa_tpl_${e.key}" dir="ltr" maxlength="80" placeholder="اسم قالب واتساب المعتمد (اختياري، للـ API)" value="${esc(s['wa_tpl_' + e.key] || '')}"></div>`;
+    $('#view').innerHTML = `
+      <div class="notice ${api ? 'ok' : ''}" style="${api ? '' : 'background:rgba(76,194,255,.1);border-color:rgba(76,194,255,.4);color:#a8def8'}">${api
+        ? `${ic('check', 16)} الإرسال التلقائي شغّال عبر WhatsApp Cloud API. أي طلب جديد أو تغيير حالة بيبعت رسالة للعميل لوحده.`
+        : `${ic('info', 16)} الوضع الحالي: <b>يدوي</b>. الرسائل بتتجهّز تلقائيًا وتظهر هنا، وبتدوس "فتح واتساب" وتبعت. للإرسال التلقائي بالكامل ضيف WHATSAPP_TOKEN و WHATSAPP_PHONE_ID في ملف .env.`}</div>
+      <div class="filters-bar"><a class="btn btn-sm ${!q.status ? 'btn-primary' : 'btn-outline-secondary'}" href="#/whatsapp">الكل</a>
+        ${Object.entries(WA_ST).map(([k, v]) => `<a class="btn btn-sm ${q.status === k ? 'btn-primary' : 'btn-outline-secondary'}" href="#/whatsapp?status=${k}">${v[1]} (${c(k)})</a>`).join('')}</div>
+      ${table(['الوقت', 'الطلب', 'الرقم', 'الحدث', 'الرسالة', 'الحالة', ''], r.items.map((m) => {
+        const ev = (r.events.find((e) => e.key === m.event) || {}).label || m.event;
+        const link = `https://wa.me/${esc(m.to_phone)}?text=${encodeURIComponent(m.body)}`;
+        return `<tr><td class="small muted text-nowrap">${esc(date(m.created_at))}</td><td><b dir="ltr">${esc(m.code || '—')}</b><div class="small muted">${esc(m.name || '')}</div></td><td dir="ltr" style="text-align:start">${esc(m.to_phone)}</td><td>${esc(ev)}</td>
+          <td class="small" style="max-width:300px;white-space:pre-line">${esc(m.body)}${m.error ? `<div style="color:var(--bad)">${esc(m.error)}</div>` : ''}</td><td>${chip(WA_ST[m.status][0], WA_ST[m.status][1])}</td>
+          <td><div class="row-actions"><a class="btn btn-sm btn-primary" href="${link}" target="_blank" rel="noopener" data-act="wasent" data-id="${m.id}">${ic('phone', 14)} فتح واتساب</a>${m.status === 'failed' ? btnSm('waretry', 'إعادة', `data-id="${m.id}"`) : ''}</div></td></tr>`;
+      }), 'لسه مفيش رسائل. أول طلب هتشوف رسالته هنا.')}${pager(r)}
+      <form class="panel mt-4" id="waf" style="max-width:900px"><h3>${ic('gear', 20)} قوالب الرسائل</h3>
+        <label class="check mb-2"><input class="form-check-input m-0" type="checkbox" name="wa_enabled" ${s.wa_enabled === '1' ? 'checked' : ''}> تفعيل رسائل واتساب</label>
+        <p class="muted small">المتغيرات: <code dir="ltr">{name}</code> اسم العميل · <code dir="ltr">{code}</code> كود الطلب · <code dir="ltr">{total}</code> الإجمالي · <code dir="ltr">{store}</code> اسم المتجر · <code dir="ltr">{track_url}</code> رابط التتبع · <code dir="ltr">{phone}</code> رقم الدعم</p>
+        <div class="d-grid gap-3">${r.events.map(evRow).join('')}</div><div id="waErr"></div><button class="btn btn-primary mt-3">${ic('check', 16)} حفظ القوالب</button></form>`;
+    $('#waf').addEventListener('submit', async (e) => {
+      e.preventDefault(); const f = new FormData(e.target), d = {};
+      for (const [k] of f) d[k] = f.get(k);
+      for (const k of ['wa_enabled', ...r.events.map((x) => 'wa_on_' + x.key)]) d[k] = f.get(k) === 'on';
+      try { await put('/api/admin/settings', d); toast('تم حفظ القوالب'); } catch (err) { $('#waErr').innerHTML = `<div class="notice">${esc(err.message)}</div>`; }
+    });
+  };
   views.settings = async () => {
     shell('settings', 'الإعدادات', '', '<div class="skel"></div>');
     const s = await get('/api/admin/settings'); S.settings = s;
@@ -314,7 +350,7 @@
   document.addEventListener('click', async (e) => {
     const el = e.target.closest('[data-act]'); if (!el) return;
     const act = el.dataset.act, id = Number(el.dataset.id);
-    e.preventDefault();
+    if (act !== 'wasent') e.preventDefault();
     const run = async (fn) => { try { await fn(); } catch (err) { toast(err.message, 'bad'); } };
     switch (act) {
       case 'logout': await post('/api/auth/logout'); S.user = null; renderLogin(); break;
@@ -343,6 +379,8 @@
           onSubmit: async (f) => { const d = Object.fromEntries(new FormData(f)); await patch('/api/admin/users/' + id, { role: d.role, cashback_balance: Number(d.cashback_balance), active: d.active === 'on' }); toast('تم الحفظ'); route(); },
         }); break;
       }
+      case 'wasent': run(async () => { await post('/api/admin/whatsapp/' + id + '/sent'); setTimeout(route, 400); }); return;
+      case 'waretry': run(async () => { await post('/api/admin/whatsapp/' + id + '/retry'); toast('اتعاد الإرسال'); setTimeout(route, 800); }); break;
       case 'rvon': run(async () => { await patch('/api/admin/reviews/' + id, { approved: true }); route(); }); break;
       case 'rvoff': run(async () => { await patch('/api/admin/reviews/' + id, { approved: false }); route(); }); break;
       case 'rvdel': if (confirm('حذف التقييم؟')) run(async () => { await del('/api/admin/reviews/' + id); route(); }); break;
