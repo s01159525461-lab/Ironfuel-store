@@ -1,0 +1,15 @@
+[build]
+  command = "node netlify-build/build.js"
+  publish = "site"
+
+[[redirects]]
+  from = "/pay/*"
+  to = "/pay.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
